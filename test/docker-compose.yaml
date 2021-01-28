@@ -3,9 +3,8 @@ version: "3.3"
 services:
 
   test:
-    image: numendo/php:7.4-apache-buster
+    image: numendo/wordpress:7.4-apache-buster
     volumes:
       - ./:/var/www/html/:cached
     ports:
       - 80:80
-      - 443:443

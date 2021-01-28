@@ -73,10 +73,44 @@ RUN pecl install -o -f redis \
 RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
 
 COPY configs/000-default.conf /etc/apache2/sites-available/000-default.conf
-COPY configs/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
 
-RUN apt-get install -y ssl-cert
+RUN apt-get update && apt-get install -y ssl-cert
 RUN a2enmod ssl
 RUN a2enmod rewrite
 RUN a2ensite 000-default.conf
 RUN a2ensite default-ssl.conf
+
+# install xdebug
+RUN yes | pecl install xdebug \
+    && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.mode=coverage" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+## ext-http
+RUN apt-get update && apt-get install -y libssl-dev
+
+RUN pecl install raphf propro \
+    && docker-php-ext-enable raphf propro
+RUN pecl install pecl_http-3.2.4
+
+
+
+## COPIED from https://github.com/docker-library/wordpress/blob/af6cc1c9637878a7d3c59c1a451f202533189b96/latest/php7.4/apache/Dockerfile
+# persistent dependencies
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+# Ghostscript is required for rendering PDF previews
+		ghostscript \
+	; \
+	rm -rf /var/lib/apt/lists/*
+
+# install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
+RUN set -ex; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+		libjpeg-dev \
+	; \
+	rm -rf /var/lib/apt/lists/*
+### END COPIED
