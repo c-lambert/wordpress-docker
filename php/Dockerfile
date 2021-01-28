@@ -114,3 +114,5 @@ RUN set -ex; \
 	; \
 	rm -rf /var/lib/apt/lists/*
 ### END COPIED
+
+RUN apt-get update && apt-get install -y nano
