@@ -1,6 +1,6 @@
 # wordpress-docker
 
-####Build une nouvelle image
+#### Build une nouvelle image
 ```
 docker build nom_du_dossier -t 'nom:tag'
 ```
