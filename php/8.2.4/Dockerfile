@@ -129,3 +129,5 @@ RUN set -ex; \
 ### END COPIED
 RUN apt-get update && apt-get install -y nano \
     && rm -rf /var/lib/apt/lists/*
+
+RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
