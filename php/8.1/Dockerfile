@@ -1,6 +1,6 @@
-FROM php:8.2.4-apache-buster
+FROM php:8.1-apache-buster
 
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 RUN apt-get update && apt-get -qq -y install \
                    zip unzip \
@@ -129,5 +129,3 @@ RUN set -ex; \
 ### END COPIED
 RUN apt-get update && apt-get install -y nano \
     && rm -rf /var/lib/apt/lists/*
-
-RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
