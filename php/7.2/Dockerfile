@@ -4,7 +4,16 @@ RUN apt-get update && apt-get -qq -y install \
                    zip unzip \
                    git \
                    ssh \
-                   openssh-client
+                   openssh-client \
+                   libxml2-dev
+
+RUN docker-php-ext-install bcmath \
+    && docker-php-ext-install pdo_mysql \
+    && docker-php-ext-install soap \
+    && docker-php-ext-install xml \
+    && docker-php-ext-install exif \
+    && docker-php-ext-install mysqli \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
 
