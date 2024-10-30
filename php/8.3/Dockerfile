@@ -28,6 +28,20 @@ RUN pecl install xdebug \
     && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && pecl clear-cache
 
+RUN apt-get update \
+    	&& apt-get install -y \
+        libxml2-dev \
+        && docker-php-ext-install xml \
+        && rm -rf /var/lib/apt/lists/*
+
+# Install php extensions
+RUN docker-php-ext-install bcmath \
+    && docker-php-ext-install pdo_mysql \
+    && docker-php-ext-install soap \
+    && docker-php-ext-install exif \
+    && docker-php-ext-install mysqli \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN apt-get update && apt-get install -y nano \
     && rm -rf /var/lib/apt/lists/*
 
