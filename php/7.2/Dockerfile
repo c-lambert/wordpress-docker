@@ -1,4 +1,4 @@
-FROM php:7.2-apache-buster
+FROM php:7.2-apache-bookworm
 
 RUN apt-get update && apt-get -qq -y install \
                    zip unzip \

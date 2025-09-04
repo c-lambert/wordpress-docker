@@ -1,4 +1,4 @@
-FROM php:8.3-apache-bullseye
+FROM php:8.3-apache-bookworm AS init
 
 RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
@@ -11,6 +11,73 @@ RUN apt-get update && apt-get -qq -y install \
                    yarn \
                     && rm -rf /var/lib/apt/lists/*
 
+RUN pecl install apcu \
+        && docker-php-ext-enable apcu \
+        && pecl clear-cache
+
+RUN apt-get update && apt-get install -y \
+            libmcrypt-dev \
+            && pecl install mcrypt \
+            && docker-php-ext-enable mcrypt \
+            && pecl clear-cache
+
+RUN apt-get update && apt-get install -y \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+    && docker-php-ext-configure gd \
+    && docker-php-ext-install -j$(nproc) gd \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+	&& apt-get install -y \
+		libicu-dev \
+	&& docker-php-ext-install -j$(nproc) \
+		intl \
+	&& apt-get purge -y \
+		libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+	&& apt-get install -y \
+		libmagickwand-dev --no-install-recommends \
+		ghostscript --no-install-recommends \
+	&& pecl install \
+		imagick \
+	&& docker-php-ext-enable \
+		imagick \
+	&& apt-get purge -y \
+		libmagickwand-dev \
+	&& pecl clear-cache \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    	&& apt-get install -y \
+    	libcurl4-openssl-dev \
+    	&& docker-php-ext-install curl \
+      && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install bcmath \
+    && docker-php-ext-install pdo_mysql \
+    && docker-php-ext-install soap \
+    && docker-php-ext-install xml \
+    && docker-php-ext-install exif \
+    && docker-php-ext-install mysqli \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+    	&& apt-get install -y \
+    	libzip-dev \
+    	&& docker-php-ext-install zip \
+        && rm -rf /var/lib/apt/lists/*
+
+
+RUN pecl install -o -f redis \
+    && docker-php-ext-enable redis \
+    && pecl clear-cache \
+    && rm -rf /var/lib/apt/lists/*
+
+
 RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
 
 COPY configs/000-default.conf /etc/apache2/sites-available/000-default.conf
@@ -21,28 +88,53 @@ RUN a2enmod rewrite
 RUN a2ensite 000-default.conf
 RUN a2ensite default-ssl.conf
 
-# install xdebug
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug \
-    && echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+## ext-http
+RUN apt-get update && apt-get install -y libssl-dev  \
+    && rm -rf /var/lib/apt/lists/* \
     && pecl clear-cache
 
-RUN apt-get update \
-    	&& apt-get install -y \
-        libxml2-dev \
-        && docker-php-ext-install xml \
-        && rm -rf /var/lib/apt/lists/*
+RUN pecl install raphf \
+    && docker-php-ext-enable raphf \
+    && rm -rf /var/lib/apt/lists/* \
+    && pecl clear-cache
 
-# Install php extensions
-RUN docker-php-ext-install bcmath \
-    && docker-php-ext-install pdo_mysql \
-    && docker-php-ext-install soap \
-    && docker-php-ext-install exif \
-    && docker-php-ext-install mysqli \
-    && rm -rf /var/lib/apt/lists/*
+RUN pecl install pecl_http-4.2.1 \
+    && pecl clear-cache
 
+## COPIED from https://github.com/docker-library/wordpress/blob/af6cc1c9637878a7d3c59c1a451f202533189b96/latest/php7.4/apache/Dockerfile
+# persistent dependencies
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+# Ghostscript is required for rendering PDF previews
+		ghostscript \
+	; \
+	rm -rf /var/lib/apt/lists/*
+
+# install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
+RUN set -ex; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+		libjpeg-dev \
+	; \
+	rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure pcntl --enable-pcntl \
+  && docker-php-ext-install \
+    pcntl
+
+### END COPIED
 RUN apt-get update && apt-get install -y nano \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
+
+
+FROM init AS dev
+# install xdebug
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug \
+    && echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20220829/xdebug.so" \
+    && echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
+    && pecl clear-cache

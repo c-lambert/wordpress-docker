@@ -1,4 +1,4 @@
-FROM php:8.2-apache-buster
+FROM php:8.2-apache-bookworm AS init
 
 RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
@@ -118,15 +118,23 @@ RUN set -ex; \
 		libjpeg-dev \
 	; \
 	rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure pcntl --enable-pcntl \
+  && docker-php-ext-install \
+    pcntl
+
 ### END COPIED
 RUN apt-get update && apt-get install -y nano \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
 
+
+FROM init AS dev
 # install xdebug
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug \
+    && echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20220829/xdebug.so" \
     && echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && pecl clear-cache
