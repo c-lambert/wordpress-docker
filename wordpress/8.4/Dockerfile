@@ -1,4 +1,4 @@
-FROM numendo/php:8.3-apache
+FROM numendo/php:8.4-apache
 
 # install wp-cli
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \

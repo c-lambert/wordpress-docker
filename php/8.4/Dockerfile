@@ -1,140 +1,60 @@
-FROM php:8.4-apache-bookworm AS init
+FROM php:8.4-apache-trixie AS base
 
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update && apt-get -qq -y install \
-                   zip unzip \
-                   git \
-                   ssh \
-                   openssh-client \
-                   nodejs \
-                   yarn \
-                    && rm -rf /var/lib/apt/lists/*
+SHELL ["/bin/bash", "-l", "-c"]
 
-RUN pecl install apcu \
-        && docker-php-ext-enable apcu \
-        && pecl clear-cache
+ARG BUILD_DEPS="libmcrypt-dev libfreetype6-dev libjpeg62-turbo-dev libpng-dev libicu-dev libmagickwand-dev libcurl4-openssl-dev libzip-dev libssl-dev libjpeg-dev"
+ARG RUNTIME_DEPS="curl zip unzip git ssh openssh-client ghostscript ssl-cert libmcrypt4 libzip5 libicu76 libmagickwand-7.q16-10"
 
-RUN apt-get update && apt-get install -y \
-            libmcrypt-dev \
-            && pecl install mcrypt \
-            && docker-php-ext-enable mcrypt \
-            && pecl clear-cache
+USER root
 
-RUN apt-get update && apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-    && docker-php-ext-configure gd \
-    && docker-php-ext-install -j$(nproc) gd \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    $BUILD_DEPS \
+    $RUNTIME_DEPS && \
+    docker-php-ext-configure gd && \
+    docker-php-ext-install -j$(nproc) \
+        bcmath \
+        exif \
+        gd \
+        intl \
+        mysqli \
+        pcntl \
+        pdo_mysql \
+        soap \
+        xml \
+        zip && \
+    pecl install apcu mcrypt imagick redis raphf && \
+    docker-php-ext-enable apcu mcrypt imagick redis raphf && \
+    pecl install pecl_http && \
+    docker-php-ext-enable http && \
+    apt-get purge -y --auto-remove $BUILD_DEPS && \
+    rm -rf /var/lib/apt/lists/* && \
+    pecl clear-cache
 
-RUN apt-get update \
-	&& apt-get install -y \
-		libicu-dev \
-	&& docker-php-ext-install -j$(nproc) \
-		intl \
-	&& apt-get purge -y \
-		libicu-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update \
-	&& apt-get install -y \
-		libmagickwand-dev --no-install-recommends \
-		ghostscript --no-install-recommends \
-	&& pecl install \
-		imagick \
-	&& docker-php-ext-enable \
-		imagick \
-	&& apt-get purge -y \
-		libmagickwand-dev \
-	&& pecl clear-cache \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update \
-    	&& apt-get install -y \
-    	libcurl4-openssl-dev \
-    	&& docker-php-ext-install curl \
-      && rm -rf /var/lib/apt/lists/*
-
-RUN docker-php-ext-install bcmath \
-    && docker-php-ext-install pdo_mysql \
-    && docker-php-ext-install soap \
-    && docker-php-ext-install xml \
-    && docker-php-ext-install exif \
-    && docker-php-ext-install mysqli \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update \
-    	&& apt-get install -y \
-    	libzip-dev \
-    	&& docker-php-ext-install zip \
-        && rm -rf /var/lib/apt/lists/*
-
-
-RUN pecl install -o -f redis \
-    && docker-php-ext-enable redis \
-    && pecl clear-cache \
-    && rm -rf /var/lib/apt/lists/*
-
-
-RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+    php -r "if (hash_file('sha384', 'composer-setup.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd0043083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }" && \
+    php composer-setup.php --install-dir=/usr/bin --filename=composer && \
+    php -r "unlink('composer-setup.php');"
 
 COPY configs/000-default.conf /etc/apache2/sites-available/000-default.conf
+RUN a2enmod ssl rewrite && \
+    a2ensite 000-default.conf default-ssl.conf
 
-RUN apt-get update && apt-get install -y ssl-cert && rm -rf /var/lib/apt/lists/*
-RUN a2enmod ssl
-RUN a2enmod rewrite
-RUN a2ensite 000-default.conf
-RUN a2ensite default-ssl.conf
+RUN chown -R www-data:www-data /var/www
 
-## ext-http
-RUN apt-get update && apt-get install -y libssl-dev  \
-    && rm -rf /var/lib/apt/lists/* \
-    && pecl clear-cache
+WORKDIR /var/www/html
 
-RUN pecl install raphf \
-    && docker-php-ext-enable raphf \
-    && rm -rf /var/lib/apt/lists/* \
-    && pecl clear-cache
+FROM base AS production
+USER www-data
 
-RUN pecl install pecl_http-4.2.1 \
-    && pecl clear-cache
+FROM base AS dev
+RUN apt-get update && apt-get install -y --no-install-recommends nano && \
+    pecl install xdebug && \
+    docker-php-ext-enable xdebug && \
+    rm -rf /var/lib/apt/lists/*
 
-## COPIED from https://github.com/docker-library/wordpress/blob/af6cc1c9637878a7d3c59c1a451f202533189b96/latest/php7.4/apache/Dockerfile
-# persistent dependencies
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-# Ghostscript is required for rendering PDF previews
-		ghostscript \
-	; \
-	rm -rf /var/lib/apt/lists/*
+RUN echo "zend_extension=xdebug" > /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-# install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
-RUN set -ex; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		libjpeg-dev \
-	; \
-	rm -rf /var/lib/apt/lists/*
-
-RUN docker-php-ext-configure pcntl --enable-pcntl \
-  && docker-php-ext-install \
-    pcntl
-
-### END COPIED
-RUN apt-get update && apt-get install -y nano \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
-
-
-FROM init AS dev
-# install xdebug
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug \
-    && echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20220829/xdebug.so" \
-    && echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    && pecl clear-cache
+USER www-data

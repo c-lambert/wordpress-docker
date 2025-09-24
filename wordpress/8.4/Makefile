@@ -1,4 +1,4 @@
 build:
-	docker build . -t 'numendo/wordpress:8.3-apache' --platform linux/amd64,linux/arm64
+	docker build . -t 'numendo/wordpress:8.4-apache' --platform linux/amd64,linux/arm64
 push:
-	docker push 'numendo/wordpress:8.3-apache'
+	docker push 'numendo/wordpress:8.4-apache'
