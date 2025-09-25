@@ -28,6 +28,7 @@ RUN apt-get update && \
     pecl install pecl_http && \
     docker-php-ext-enable http && \
     apt-get purge -y --auto-remove $BUILD_DEPS && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     pecl clear-cache
 
