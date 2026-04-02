@@ -1,20 +1,18 @@
 # wordpress-docker
 
-#### Créer le builder
-Voir Makefile
+## Makefile convention
 
-#### Build une nouvelle image
-```
-docker buildx build nom_du_dossier -t 'nom:tag'
-```
-``
-docker buildx build . -t 'numendo/php:8.0.13-apache-buster'
-``
+- `make build.and.push`: Create and publish a multi-platform image 
+- `build.dev` : Locally create the image in order to test it
 
-#### Push l'image
-```
-docker push 'nom/tag'
-```
-``
-docker push 'numendo/php:8.0.13-apache-buster'
-``
+
+## Setup
+
+The multi-platform build is handled with a specific docker container.
+Before building multi-platform image you have to set it up, all the instructions are in the `/Makefile`.
+
+## Testing
+
+- Build the image locally with `build.dev`
+- Define your custom local image inside `/test/docker-compose.yaml` with the `-dev` suffix
+- Start the container
