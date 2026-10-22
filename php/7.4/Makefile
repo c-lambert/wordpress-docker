@@ -1,4 +1,4 @@
 build.dev:
-	docker buildx build . -t 'numendo/php:7.4-apache-dev' --target=dev
+	docker buildx build . -t 'numendo/php:7.4-apache-dev'
 build.and.push:
-	docker buildx build . -t 'numendo/php:7.4-apache' --target=production --platform linux/amd64,linux/arm64 --push
+	docker buildx build . -t 'numendo/php:7.4-apache' --platform linux/amd64,linux/arm64 --push
