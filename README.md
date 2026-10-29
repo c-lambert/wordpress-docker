@@ -12,6 +12,7 @@ version is removed from this repository and from Docker Hub.
 | 8.2 | `numendo/php:8.2-apache`, `numendo/wordpress:8.2-apache` | 12 bookworm | `php:8.2-apache-bookworm` |
 | 8.3 | `numendo/php:8.3-apache`, `numendo/wordpress:8.3-apache` | 12 bookworm | `php:8.3-apache-bookworm` |
 | 8.4 | `numendo/php:8.4-apache`, `numendo/wordpress:8.4-apache` | 13 trixie | `php:8.4-apache-trixie` |
+| 8.5 | `numendo/php:8.5-apache`, `numendo/wordpress:8.5-apache` | 13 trixie | `php:8.5-apache-trixie` |
 
 Only `numendo/php:x.y-apache` and `numendo/wordpress:x.y-apache` tags are published: no distribution
 suffix, no patch version, no `-dev` image.
