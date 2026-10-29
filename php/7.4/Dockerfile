@@ -23,6 +23,7 @@ RUN set -eux; \
         php7.4-bcmath \
         php7.4-curl \
         php7.4-gd \
+        php7.4-igbinary \
         php7.4-imagick \
         php7.4-intl \
         php7.4-mbstring \
@@ -45,13 +46,13 @@ RUN set -eux; \
         openssh-client \
         nano \
         xz-utils; \
-    # CVE-2026-109618 et CVE-2026-109619 : corrigées à partir du paquet 7.4.33-31
+    # CVE-2026-109618 et CVE-2026-109619 : corrigées à partir du paquet 7.4.33-31 \
     dpkg --compare-versions "$(dpkg-query -W -f '${Version}' php7.4-common)" ge '1:7.4.33-31'; \
     rm -rf /var/lib/apt/lists/*
 
 # Même organisation que les images officielles php : php.ini et conf.d dans /usr/local/etc/php
 RUN set -eux; \
-    phpdismod -v 7.4 calendar ffi gettext opcache shmop sockets sysvmsg sysvsem sysvshm; \
+    phpdismod -v 7.4 ffi opcache sysvmsg sysvsem sysvshm; \
     mkdir -p "$PHP_INI_DIR/conf.d"; \
     cp /usr/lib/php/7.4/php.ini-development /usr/lib/php/7.4/php.ini-production "$PHP_INI_DIR/"; \
     for sapi in apache2 cli; do ln -sf "$PHP_INI_DIR/php.ini" "/etc/php/7.4/$sapi/php.ini"; done; \

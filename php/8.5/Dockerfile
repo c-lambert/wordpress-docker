@@ -12,19 +12,25 @@ RUN apt-get update && \
     $BUILD_DEPS \
     $RUNTIME_DEPS && \
     docker-php-ext-configure gd && \
+    docker-php-ext-configure ftp --with-ftp-ssl && \
     docker-php-ext-install -j$(nproc) \
         bcmath \
+        calendar \
         exif \
+        ftp \
         gd \
+        gettext \
         intl \
         mysqli \
         pcntl \
         pdo_mysql \
+        shmop \
         soap \
+        sockets \
         xml \
         zip && \
-    pecl install apcu mcrypt imagick redis raphf && \
-    docker-php-ext-enable apcu mcrypt imagick redis raphf && \
+    pecl install apcu mcrypt imagick redis raphf igbinary && \
+    docker-php-ext-enable apcu mcrypt imagick redis raphf igbinary && \
     pecl install pecl_http && \
     docker-php-ext-enable http && \
     apt-get purge -y --auto-remove $BUILD_DEPS && \

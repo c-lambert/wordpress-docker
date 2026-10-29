@@ -77,6 +77,23 @@ RUN pecl install -o -f redis \
     && pecl clear-cache \
     && rm -rf /var/lib/apt/lists/*
 
+# Extensions des paquets PHP Debian/Ubuntu (php-common, php-igbinary), absentes de l'image officielle
+RUN apt-get update \
+	&& apt-get install -y \
+		libssl-dev \
+	&& docker-php-ext-configure ftp --with-openssl-dir=/usr \
+	&& docker-php-ext-install -j$(nproc) \
+		calendar \
+		ftp \
+		gettext \
+		shmop \
+		sockets \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pecl install igbinary \
+    && docker-php-ext-enable igbinary \
+    && pecl clear-cache
+
 
 RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
 
@@ -106,7 +123,7 @@ RUN pecl install pecl_http-4.2.1 \
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-# Ghostscript is required for rendering PDF previews
+# Ghostscript is required for rendering PDF previews \
 		ghostscript \
 	; \
 	rm -rf /var/lib/apt/lists/*
