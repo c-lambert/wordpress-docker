@@ -147,6 +147,9 @@ RUN apt-get update && apt-get install -y nano \
 RUN echo 'numendo:x:1000:1000::/home/numendo:/bin/bash' >> /etc/passwd
 
 
+# Image publiée par `make build.and.push` (--target=production) : init, sans xdebug
+FROM init AS production
+
 FROM init AS dev
 # install xdebug
 RUN pecl install xdebug \
